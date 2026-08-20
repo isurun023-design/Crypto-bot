@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Multi-Coin Scanner</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { text-align: center; color: #38bdf8; }
+        .controls { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+        select, button { padding: 12px 20px; border-radius: 8px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; }
+        select { background: #1e293b; color: #fff; }
+        button { background: #0284c7; color: white; transition: 0.2s; }
+        button:hover { background: #0369a1; }
+        .status { text-align: center; font-size: 18px; margin: 15px 0; color: #94a3b8; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-top: 20px; }
+        .card { background: #1e293b; padding: 20px; border-radius: 12px; border-left: 6px solid #64748b; }
+        .card.buy { border-left-color: #22c55e; }
+        .card.sell { border-left-color: #ef4444; }
+        .symbol { font-size: 20px; font-weight: bold; }
+        .signal-buy { color: #22c55e; font-weight: bold; }
+        .signal-sell { color: #ef4444; font-weight: bold; }
+        .details { margin-top: 10px; font-size: 14px; color: #cbd5e1; }
+        .no-signals { text-align: center; font-size: 18px; color: #f59e0b; margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Crypto Top 50 Scanner</h1>
+        
+        <div class="controls">
+            <select id="tfSelect">
+                <option value="15m">15m (Scalping / Quick)</option>
+                <option value="1h" selected>1h (Intraday)</option>
+            </select>
+            <button onclick="scanCoins()">🔍 SCAN TOP 50 COINS</button>
+        </div>
+
+        <div id="statusText" class="status">Click "SCAN TOP 50 COINS" to start scanning...</div>
+
+        <div id="resultsGrid" class="grid"></div>
+    </div>
+
+    <script>
+        async function scanCoins() {
+            const tf = document.getElementById('tfSelect').value;
+            const statusDiv = document.getElementById('statusText');
+            const grid = document.getElementById('resultsGrid');
+            
+            statusDiv.innerText = "Scanning Top 50 Binance Coins... Please wait 5-10 seconds ⏳";
+            grid.innerHTML = "";
+
+            try {
+                const response = await fetch(`/api/scan_all?interval=${tf}`);
+                const data = await response.json();
+
+                statusDiv.innerText = `Scan Complete! Scanned: ${data.total_scanned} Coins | Signals Found: ${data.signals_found}`;
+
+                if (data.signals_found === 0) {
+                    grid.innerHTML = `<div class="no-signals">⚠️ No High-Probability Signals at this moment.<br>Market is currently Ranging/Sideways. Try 15m or check back later!</div>`;
+                    return;
+                }
+
+                data.results.forEach(item => {
+                    const isBuy = item.signal.includes("BUY");
+                    const card = document.createElement('div');
+                    card.className = `card ${isBuy ? 'buy' : 'sell'}`;
+                    card.innerHTML = `
+                        <div class="symbol">${item.symbol}</div>
+                        <div class="${isBuy ? 'signal-buy' : 'signal-sell'}">${item.signal}</div>
+                        <div class="details">
+                            <p>Price: <strong>$${item.price}</strong></p>
+                            <p>SL: <strong style="color:#ef4444">$${item.suggested_sl}</strong></p>
+                            <p>TP: <strong style="color:#22c55e">$${item.suggested_tp}</strong></p>
+                            <p>Volume Boost: <strong>${item.volume_ratio}x</strong></p>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+
+            } catch (err) {
+                statusDiv.innerText = "Error fetching data from server!";
+            }
+        }
+    </script>
+</body>
+</html>
